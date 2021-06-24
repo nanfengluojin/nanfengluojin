@@ -63,12 +63,13 @@ public class CommonController {
 
 
     @ApiOperation("刷新token")
+    @ApiImplicitParam(name = "refreshToken", value = "token", dataType = "String", paramType = "query", example = "1234567890")
     @GetMapping("/refreshToken")
-    public Result refreshToken(@RequestHeader Map<String, Object> headerMap) {
+    public Result refreshToken() {
         Map<String, String> parameters = new HashMap<>(2);
         parameters.put("grant_type", "refresh_token");//设置授权类型为刷新token
         try {
-            String refreshToken = String.valueOf(headerMap.get("refresh_token"));
+            String refreshToken = String.valueOf(request.getParameter("refreshToken"));
             parameters.put("refresh_token", refreshToken);
             Authentication authentication = new UsernamePasswordAuthenticationToken(CustomConfig.withClient, CustomConfig.secret, null);
             ResponseEntity<OAuth2AccessToken> responseEntity = tokenEndpoint.postAccessToken(authentication, parameters);
@@ -79,13 +80,14 @@ public class CommonController {
     }
 
 
-    @ApiOperation("退出登录,并清除redis中的token")
+    @ApiOperation("退出登录")
+    @ApiImplicitParam(name = "accessToken", value = "token", dataType = "String", paramType = "query", example = "1234567890")
     @GetMapping("/loginOut")
-    public Result loginOut(@RequestHeader Map<String, Object> headerMap) {
-        if (ObjUtil.isEmpty(headerMap.get("access_token"))) {
+    public Result loginOut() {
+        if (ObjUtil.isEmpty(request.getParameter("accessToken"))) {
             return Result.error(ResultCodeEnum.PARAM_ERROR);
         }
-        consumerTokenServices.revokeToken(String.valueOf(headerMap.get("access_token")));
+        consumerTokenServices.revokeToken(String.valueOf(request.getParameter("accessToken")));
         return Result.ok();
     }
 
@@ -106,6 +108,7 @@ public class CommonController {
      * @return
      * @throws Exception
      */
+    @ApiOperation("退出登录")
     @GetMapping("/getCode")
     public Result getCode() {
         //第一个参数是生成的验证码，第二个参数是生成的图片
