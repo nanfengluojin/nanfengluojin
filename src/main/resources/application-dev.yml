@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: nflj-server
+  jpa:
+    database: mysql
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+        jdbc:
+          lob:
+            non_contextual_creation: true
+  datasource:
+    url: jdbc:mysql://localhost:3306/nflj?characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  redis:
+    host: localhost
+    database: 0
+    port: 6379
+    #jedis:
+    #  pool:
+    #    max-active: 50  #最大连接数
+    #   max-wait: -1 #最大阻塞等待时间(负数表示没限制)
+    #    max-idle: 50  #最大空闲
+    #    min-idle: 5  #最小空闲
+    #连接超时时间
+    timeout: 3000
+    password:
+
+knife4j:
+  production: false
+
+#自定义
+custom-config:
+  jdbcUrl: jdbc:mysql://localhost:3306/%s?characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+  dbName: nflj
+  dbUsername: root
+  dbPassword: 123456
+  ipData: F:\ipData\ip2region.db
+  fileSave: F:\nflj\
+  excelSavePath: F:\nflj\excel\
+
+
