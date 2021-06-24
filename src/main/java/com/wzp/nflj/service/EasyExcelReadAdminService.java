@@ -16,7 +16,7 @@ import java.util.List;
  * @DATE: 2020/12/23 9:41
  */
 @Slf4j
-public class EasyExcelReadService extends AnalysisEventListener<Admin> {
+public class EasyExcelReadAdminService extends AnalysisEventListener<Admin> {
 
     /**
      * 每隔3000条存储数据库，实际使用中可以3000条，然后清理list ，方便内存回收

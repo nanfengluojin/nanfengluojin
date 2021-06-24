@@ -7,23 +7,21 @@ import com.querydsl.core.types.Predicate;
 import com.wzp.nflj.config.BaseConfig;
 import com.wzp.nflj.config.CustomConfig;
 import com.wzp.nflj.enums.ResultCodeEnum;
-import com.wzp.nflj.model.Admin;
-import com.wzp.nflj.model.Authority;
-import com.wzp.nflj.model.QAdmin;
-import com.wzp.nflj.model.Role;
+import com.wzp.nflj.model.*;
 import com.wzp.nflj.repository.AdminRepository;
 import com.wzp.nflj.repository.AdminRoleRepository;
 import com.wzp.nflj.repository.RoleAuthorityRepository;
+import com.wzp.nflj.service.EasyExcelReadAdminService;
 import com.wzp.nflj.service.EasyExcelWriteService;
 import com.wzp.nflj.util.DateUtil;
 import com.wzp.nflj.util.IpUtil;
 import com.wzp.nflj.util.ObjUtil;
 import com.wzp.nflj.util.Result;
-import com.wzp.nflj.util.excel.EasyExcelReadListener;
 import com.wzp.nflj.util.excel.EasyExcelWriteUtil;
 import com.wzp.nflj.vo.AdminVO;
 import com.wzp.nflj.vo.IdVO;
 import com.wzp.nflj.vo.LoginVO;
+import com.wzp.nflj.vo.UpdatePasswordVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -33,6 +31,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -133,20 +132,38 @@ public class AdminController extends BaseConfig {
     }
 
 
-    @ApiOperation("删除")
-    @PostMapping("delete")
-    public Result delete(@RequestBody IdVO idVO) {
-        if (ObjUtil.isEmpty(idVO.getId())) {
+    @ApiOperation("修改后台用户")
+    @PostMapping("/update")
+    @ApiOperationSupport(ignoreParameters = {"username", "enabled"})
+    public Result<Admin> update(@RequestBody AdminVO adminVO) {
+        if (ObjUtil.isEmpty(adminVO.getId())) {
             return Result.error(ResultCodeEnum.LACK_NEEDS_PARAM);
         }
-        Optional<Admin> optional = adminRepository.findById(idVO.getId());
+        Long id = adminVO.getId();
+        Optional<Admin> optional = adminRepository.findById(id);
         Admin admin = optional.orElse(null);
-        if (admin == null) {
-            return Result.error(ResultCodeEnum.PARAM_ERROR);
+        if (admin != null) {
+            return Result.error(ResultCodeEnum.HAS_USER);
         }
-        admin.setEnabled(false);
+        if (!ObjUtil.isEmpty(adminVO.getPhone())) {
+            admin.setPhone(adminVO.getPhone());
+        }
+        if (ObjUtil.isEmptyList(adminVO.getRoleIds())) {
+            //删除原来的角色
+            adminRoleRepository.deleteAllByAdmin(admin);
+            //新增角色
+            List<Long> roleIds = adminVO.getRoleIds();
+            List<AdminRole> list = new ArrayList<>();
+            roleIds.forEach(roleId -> {
+                AdminRole adminRole = new AdminRole();
+                adminRole.setAdmin(admin);
+                adminRole.setRole(new Role(roleId));
+                list.add(adminRole);
+            });
+            adminRoleRepository.saveAll(list);
+        }
         adminRepository.save(admin);
-        return Result.ok();
+        return Result.ok(admin);
     }
 
 
@@ -188,6 +205,90 @@ public class AdminController extends BaseConfig {
     }
 
 
+    @ApiOperation("冻结")
+    @PostMapping("freeze")
+    public Result freeze(@RequestBody IdVO idVO) {
+        if (ObjUtil.isEmpty(idVO.getId())) {
+            return Result.error(ResultCodeEnum.LACK_NEEDS_PARAM);
+        }
+        Optional<Admin> optional = adminRepository.findById(idVO.getId());
+        Admin admin = optional.orElse(null);
+        if (admin == null) {
+            return Result.error(ResultCodeEnum.PARAM_ERROR);
+        }
+        admin.setEnabled(false);
+        adminRepository.save(admin);
+        return Result.ok();
+    }
+
+
+    @ApiOperation("激活")
+    @PostMapping("enabled")
+    public Result enabled(@RequestBody IdVO idVO) {
+        if (ObjUtil.isEmpty(idVO.getId())) {
+            return Result.error(ResultCodeEnum.LACK_NEEDS_PARAM);
+        }
+        Optional<Admin> optional = adminRepository.findById(idVO.getId());
+        Admin admin = optional.orElse(null);
+        if (admin == null) {
+            return Result.error(ResultCodeEnum.PARAM_ERROR);
+        }
+        admin.setEnabled(true);
+        adminRepository.save(admin);
+        return Result.ok();
+    }
+
+
+    @ApiOperation("修改密码")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    @PostMapping("/updatePassword")
+    public Result updatePassword(@RequestBody UpdatePasswordVO updatePasswordVO) {
+        if (ObjUtil.isEmpty(updatePasswordVO.getId())) {
+            return Result.error(ResultCodeEnum.LACK_NEEDS_PARAM);
+        }
+        Optional<Admin> optional = adminRepository.findById(updatePasswordVO.getId());
+        Admin admin = optional.orElse(null);
+        if (admin == null) {
+            return Result.error(ResultCodeEnum.PARAM_ERROR);
+        }
+        String oldPassword = updatePasswordVO.getOldPassword();
+        String newPassword = updatePasswordVO.getNewPassword();
+        String oldPasswordStr = admin.getPassword();
+        boolean flag = passwordEncoder.matches(oldPassword, oldPasswordStr);
+        if (!flag) {
+            return Result.error(ResultCodeEnum.OLD_PASSWORD_ERROR);
+        }
+        boolean flag1 = passwordEncoder.matches(newPassword, oldPasswordStr);
+        if (flag1) {
+            return Result.error(ResultCodeEnum.NEW_PASSWORD_HAS_SAME);
+        }
+        admin.setPassword(passwordEncoder.encode(newPassword));
+        adminRepository.save(admin);
+        removeToken(admin.getUsername());
+        return Result.ok();
+    }
+
+
+    @ApiOperation("重置密码")
+    @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN')")
+    @PostMapping("/resetPassword")
+    public Result resetPassword(@RequestBody UpdatePasswordVO updatePasswordVO) {
+        if (ObjUtil.isEmpty(updatePasswordVO.getId())) {
+            return Result.error(ResultCodeEnum.LACK_NEEDS_PARAM);
+        }
+        Optional<Admin> optional = adminRepository.findById(updatePasswordVO.getId());
+        Admin admin = optional.orElse(null);
+        if (admin == null) {
+            return Result.error(ResultCodeEnum.PARAM_ERROR);
+        }
+        String newPassword = updatePasswordVO.getNewPassword();
+        admin.setPassword(passwordEncoder.encode(newPassword));
+        adminRepository.save(admin);
+        removeToken(admin.getUsername());
+        return Result.ok();
+    }
+
+
     @ApiOperation("使用easyExcel导出到excel")
     @GetMapping("easyExcelDownload")
     public Result easyExcelDownload() {
@@ -219,9 +320,9 @@ public class AdminController extends BaseConfig {
         String filename = request.getParameter("filename");
         // 这里 需要指定用哪个class去读，然后读取第一个sheet 文件流会自动关闭
         //读取单个sheet
-//        EasyExcel.read(filename, User.class, new UserEasyExcelRead()).sheet().doRead();
+//        EasyExcel.read(filename, User.class, new EasyExcelReadAdminService()).sheet().doRead();
         //读取多个sheet
-        EasyExcel.read(filename, Admin.class, new EasyExcelReadListener(AdminRepository.class)).doReadAll();
+        EasyExcel.read(filename, Admin.class, new EasyExcelReadAdminService()).doReadAll();
         return Result.ok(ResultCodeEnum.EXCEL_IMPORT_SUCCESS);
     }
 
