@@ -11,7 +11,7 @@ spring:
       max-file-size: 100MB
       max-request-size: 1000MB
 server:
-  port: 9999
+  port: 8888
   max-http-header-size: 10000000
   servlet:
     context-path: /
