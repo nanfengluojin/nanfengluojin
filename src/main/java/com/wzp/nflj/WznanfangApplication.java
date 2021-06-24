@@ -10,10 +10,10 @@ import org.springframework.web.client.RestTemplate;
 @SpringBootApplication
 @EnableJpaAuditing
 @EnableCaching
-public class NanfengluojinApplication {
+public class WznanfangApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(NanfengluojinApplication.class, args);
+        SpringApplication.run(WznanfangApplication.class, args);
     }
 
     //springboot1.4版本以后需要在启动器里自定义RestTemplate,即在启动器中加入如下代码即可在类中正常使用@Autowired进行注入
