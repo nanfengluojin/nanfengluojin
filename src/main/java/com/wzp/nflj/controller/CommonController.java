@@ -108,7 +108,7 @@ public class CommonController {
      * @return
      * @throws Exception
      */
-    @ApiOperation("退出登录")
+    @ApiOperation("获取验证码")
     @GetMapping("/getCode")
     public Result getCode() {
         //第一个参数是生成的验证码，第二个参数是生成的图片
