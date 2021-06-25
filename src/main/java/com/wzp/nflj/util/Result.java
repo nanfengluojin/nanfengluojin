@@ -2,6 +2,7 @@ package com.wzp.nflj.util;
 
 
 import com.wzp.nflj.enums.ResultCodeEnum;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -28,6 +29,11 @@ public class Result<T> implements Serializable {
      * 成功与否
      */
     private Boolean success;
+
+    /**
+     * 响应时间戳
+     */
+    private Long timestamp;
     /**
      * 成功时响应数据
      */
@@ -66,7 +72,7 @@ public class Result<T> implements Serializable {
         msg.success = success;
         msg.message = message;
         msg.code = code;
-        return msg;
+        return msg.timeStamp();
     }
 
     /**
@@ -81,6 +87,7 @@ public class Result<T> implements Serializable {
                 .result(result)
                 .success(ResultCodeEnum.RESULT_SUCCESS.getSuccess())
                 .code(ResultCodeEnum.RESULT_SUCCESS.getCode())
+                .timeStamp()
                 .msg(ResultCodeEnum.RESULT_SUCCESS.getMessage());
     }
 
@@ -89,6 +96,7 @@ public class Result<T> implements Serializable {
                 .result((T) nullArray)
                 .success(ResultCodeEnum.RESULT_SUCCESS.getSuccess())
                 .code(ResultCodeEnum.RESULT_SUCCESS.getCode())
+                .timeStamp()
                 .msg(ResultCodeEnum.RESULT_SUCCESS.getMessage());
     }
 
@@ -113,6 +121,11 @@ public class Result<T> implements Serializable {
 
     public Result<T> msg(String msg) {
         this.message = msg;
+        return this;
+    }
+
+    private Result<T> timeStamp() {
+        this.timestamp = DateUtil.sysTime();
         return this;
     }
 
