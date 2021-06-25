@@ -94,7 +94,7 @@ public class IpUtil {
         if (checkIp(ip)) {
             ip = request.getHeader("X-Real-IP");
         }
-        return ip;
+        return "0:0:0:0:0:0:0:1".equals(ip) ? "127.0.0.1" : ip;
     }
 
     private static boolean checkIp(String ip) {
