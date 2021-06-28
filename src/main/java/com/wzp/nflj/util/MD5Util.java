@@ -13,24 +13,24 @@ public class MD5Util {
     /**
      * MD5加密
      *
-     * @param password 要加密的值
+     * @param str 要加密的值
      * @param salt
      * @return
      */
-    public static String encode(String password, String salt) {
-        password = password + salt;
-        return encode(password);
+    public static String encode(String str, String salt) {
+        str = str + salt;
+        return encode(str);
     }
 
 
-    public static String encode(String password) {
+    public static String encode(String str) {
         MessageDigest md5 = null;
         try {
             md5 = MessageDigest.getInstance("MD5");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        char[] charArray = password.toCharArray();
+        char[] charArray = str.toCharArray();
         byte[] byteArray = new byte[charArray.length];
         for (int i = 0; i < charArray.length; i++){
             byteArray[i] = (byte) charArray[i];
